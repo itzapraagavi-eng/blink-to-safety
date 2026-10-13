@@ -1,0 +1,224 @@
+/* Blink to Safety - fleet monitor
+   Palette taken from Indian road furniture: national-highway sign green,
+   warning-sign amber, brake-light red, concrete grey. Vehicle numbers are
+   drawn as yellow commercial number plates. Type: Barlow (highway signage). */
+
+@font-face { font-family: "Barlow"; font-weight: 400; font-display: swap; src: url(fonts/barlow-latin-400-normal.woff2) format("woff2"); }
+@font-face { font-family: "Barlow"; font-weight: 500; font-display: swap; src: url(fonts/barlow-latin-500-normal.woff2) format("woff2"); }
+@font-face { font-family: "Barlow"; font-weight: 600; font-display: swap; src: url(fonts/barlow-latin-600-normal.woff2) format("woff2"); }
+@font-face { font-family: "Barlow Condensed"; font-weight: 500; font-display: swap; src: url(fonts/barlow-condensed-latin-500-normal.woff2) format("woff2"); }
+@font-face { font-family: "Barlow Condensed"; font-weight: 600; font-display: swap; src: url(fonts/barlow-condensed-latin-600-normal.woff2) format("woff2"); }
+@font-face { font-family: "Barlow Condensed"; font-weight: 700; font-display: swap; src: url(fonts/barlow-condensed-latin-700-normal.woff2) format("woff2"); }
+
+:root {
+  --concrete: #eef0ec;
+  --panel: #f8f9f6;
+  --line: #cdd3ce;
+  --ink: #1f2a24;
+  --ink-2: #4a5850;
+  --muted: #6b7a71;
+  --nh-green: #0e6b4a;
+  --amber: #e8a317;
+  --amber-ink: #8a5c00;
+  --red: #c62f2b;
+  --violet: #7a4db3;
+  --plate: #f7c600;
+  --offline: #9aa49e;
+  --body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --cond: "Barlow Condensed", "Arial Narrow", "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--concrete);
+  color: var(--ink);
+  font: 400 15px/1.4 var(--body);
+  display: flex;
+  flex-direction: column;
+}
+h1, h2, h3 { font-family: var(--cond); font-weight: 600; margin: 0; letter-spacing: 0.01em; }
+button, input { font: inherit; }
+code { font-size: 0.9em; background: #e1e5e0; padding: 1px 4px; border-radius: 3px; }
+:focus-visible { outline: 3px solid var(--nh-green); outline-offset: 2px; }
+[hidden] { display: none !important; }
+.muted { color: var(--muted); }
+
+button {
+  cursor: pointer; border: 0; border-radius: 6px; padding: 8px 14px;
+  background: var(--nh-green); color: #fff; font-weight: 600;
+}
+button.ghost { background: transparent; color: var(--ink-2); border: 1px solid var(--line); padding: 6px 12px; font-weight: 500; }
+button.ghost:hover { border-color: var(--ink-2); }
+
+/* ---------- key gate ---------- */
+.gate { position: fixed; inset: 0; z-index: 2000; display: grid; place-items: center; background: rgba(31, 42, 36, 0.55); padding: 16px; }
+.gate-card { background: var(--panel); border-radius: 10px; padding: 28px; width: min(420px, 100%); border-top: 8px solid var(--nh-green); }
+.gate-card h1 { font-size: 28px; margin-bottom: 6px; }
+.gate-card p { color: var(--ink-2); margin: 0 0 16px; }
+.gate-card label { display: block; font-weight: 600; margin-bottom: 6px; }
+.gate-card input { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+.gate-error { color: var(--red); min-height: 1.4em; margin: 8px 0 !important; }
+.gate-card button { width: 100%; padding: 11px; }
+
+/* ---------- header ---------- */
+.top {
+  display: flex; align-items: center; gap: 28px; padding: 12px 20px;
+  background: var(--nh-green); color: #fff; flex-wrap: wrap;
+}
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand-mark {           /* a small highway-shield shape */
+  width: 30px; height: 34px; background: #fff;
+  clip-path: polygon(0 0, 100% 0, 100% 62%, 50% 100%, 0 62%);
+  box-shadow: inset 0 0 0 4px var(--nh-green);
+}
+.brand h1 { font-size: 26px; line-height: 1; }
+.brand .sub { margin: 2px 0 0; font-size: 13px; opacity: 0.85; }
+.totals { display: flex; gap: 26px; margin: 0; flex-wrap: wrap; }
+.totals div { display: flex; flex-direction: column-reverse; align-items: flex-start; }
+.totals dt { font-size: 12.5px; opacity: 0.85; }
+.totals dd { margin: 0; font: 700 30px/1 var(--cond); }
+.totals .t-danger.on dd { color: #fff; background: var(--red); padding: 0 8px; border-radius: 4px; }
+.top-right { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+.top-right .ghost { color: #fff; border-color: rgba(255, 255, 255, 0.45); }
+.conn { font-size: 13px; padding-left: 16px; position: relative; }
+.conn::before { content: ""; position: absolute; left: 0; top: 50%; width: 9px; height: 9px; margin-top: -4.5px; border-radius: 50%; background: #9fd8bd; }
+.conn.bad::before { background: var(--amber); }
+
+/* ---------- danger banner ---------- */
+.danger {
+  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  background: var(--red); color: #fff; padding: 12px 20px;
+  font: 600 20px/1.25 var(--cond);
+  animation: pulse 1.2s ease-in-out infinite alternate;
+}
+.danger p { margin: 0; flex: 1 1 380px; }
+.danger-actions { display: flex; gap: 10px; }
+.danger button { background: #fff; color: var(--red); }
+.danger a { color: #fff; font: 600 15px var(--body); align-self: center; }
+@keyframes pulse { from { background: var(--red); } to { background: #a8211e; } }
+@media (prefers-reduced-motion: reduce) { .danger { animation: none; } }
+
+/* ---------- layout ---------- */
+.grid {
+  flex: 1; min-height: 0;
+  display: grid; grid-template-columns: 380px 1fr 330px;
+}
+.col { min-height: 0; display: flex; flex-direction: column; }
+.col-head { display: flex; align-items: baseline; justify-content: space-between; padding: 14px 16px 10px; }
+.col-head h2 { font-size: 22px; }
+.vehicles { border-right: 1px solid var(--line); background: var(--panel); }
+.feed { border-left: 1px solid var(--line); background: var(--panel); }
+.empty { color: var(--muted); padding: 0 16px; }
+
+/* ---------- vehicle list ---------- */
+.veh-list { list-style: none; margin: 0; padding: 0 10px 12px; overflow-y: auto; }
+.veh {
+  display: grid; grid-template-columns: auto 1fr auto; gap: 4px 12px; align-items: center;
+  padding: 11px 12px 11px 14px; margin-bottom: 8px; border-radius: 8px;
+  background: #fff; border: 1px solid var(--line); border-left: 6px solid var(--state, var(--nh-green));
+  cursor: pointer; text-align: left; width: 100%; color: inherit; font-weight: 400;
+}
+.veh:hover { border-color: var(--ink-2); border-left-color: var(--state, var(--nh-green)); }
+.veh.sel { box-shadow: 0 0 0 2px var(--ink); }
+.veh .who { min-width: 0; }
+.veh .name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.veh .state { color: var(--state-ink, var(--state)); font-weight: 600; font-size: 14px; }
+.veh .meta { grid-column: 1 / -1; display: flex; gap: 14px; color: var(--ink-2); font-size: 13.5px; }
+.veh .score { text-align: right; }
+.veh .score b { font: 700 28px/1 var(--cond); display: block; }
+.veh .score span { font-size: 11.5px; color: var(--muted); }
+.meter { grid-column: 1 / -1; height: 6px; background: #e4e8e3; border-radius: 3px; position: relative; overflow: hidden; }
+.meter i { position: absolute; inset: 0 auto 0 0; background: var(--state, var(--nh-green)); border-radius: 3px; }
+.meter::before, .meter::after { content: ""; position: absolute; top: 0; bottom: 0; width: 2px; background: #fff; z-index: 1; }
+.meter::before { left: 35%; } .meter::after { left: 65%; }
+.sim { font-size: 11.5px; border: 1px solid var(--line); color: var(--muted); border-radius: 4px; padding: 0 5px; margin-left: 6px; font-weight: 500; }
+.veh.asleep { animation: rowpulse 0.8s ease-in-out infinite alternate; }
+@keyframes rowpulse { from { background: #fff; } to { background: #fbe3e2; } }
+@media (prefers-reduced-motion: reduce) { .veh.asleep { animation: none; background: #fbe3e2; } }
+
+/* the yellow commercial number plate */
+.plate {
+  display: inline-block; white-space: nowrap;
+  background: var(--plate); color: #111; border: 2px solid #111; border-radius: 4px;
+  font: 700 15px/1 var(--cond); letter-spacing: 0.06em; padding: 5px 7px 4px;
+}
+.plate.small { font-size: 12.5px; padding: 3px 5px 2px; border-width: 1.5px; }
+
+/* ---------- map ---------- */
+.mapcol { position: relative; }
+#map { flex: 1; min-height: 300px; background: #dfe4de; }
+.map-note { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 500; margin: 0;
+  background: rgba(255, 255, 255, 0.92); padding: 5px 10px; border-radius: 6px; font-size: 13px; color: var(--ink-2); }
+.vmark { display: flex; flex-direction: column; align-items: center; }
+.vmark .dot { width: 18px; height: 18px; border-radius: 50%; background: var(--state); border: 3px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.35); }
+.vmark.asleep .dot { animation: ping 0.9s ease-out infinite; }
+@keyframes ping { 0% { box-shadow: 0 0 0 0 rgba(198,47,43,.7); } 100% { box-shadow: 0 0 0 16px rgba(198,47,43,0); } }
+@media (prefers-reduced-motion: reduce) { .vmark.asleep .dot { animation: none; } }
+.vmark .plate { margin-top: 3px; }
+/* zoomed out: only the dots, except the vehicle that is selected or asleep */
+.far .vmark .plate { display: none; }
+.far .vmark.asleep .plate, .far .vmark.sel .plate { display: inline-block; }
+
+/* ---------- detail panel ---------- */
+.detail {
+  position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 600;
+  background: var(--panel); border-radius: 10px; border: 1px solid var(--line);
+  max-height: 62%; overflow-y: auto; box-shadow: 0 8px 30px rgba(31, 42, 36, 0.18);
+}
+.det-head { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--panel); }
+.det-who { flex: 1; min-width: 0; }
+.det-who h2 { font-size: 24px; }
+.det-status { margin: 0; font-weight: 600; color: var(--state-ink, var(--state)); }
+.det-body { padding: 14px 16px 16px; display: grid; grid-template-columns: 1.5fr 1fr; gap: 16px 22px; }
+.det-body h3 { font-size: 17px; margin-bottom: 8px; color: var(--ink-2); }
+.det-chart { grid-column: 1; }
+.chart { position: relative; height: 170px; }
+.chart svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.chart .tip { position: absolute; pointer-events: none; background: var(--ink); color: #fff; font-size: 12.5px; padding: 3px 7px; border-radius: 4px; white-space: nowrap; transform: translate(-50%, -120%); }
+.det-stats { grid-column: 2; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0; align-content: start; }
+.det-stats div { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column-reverse; }
+.det-stats dt { font-size: 12.5px; color: var(--muted); }
+.det-stats dd { margin: 0; font: 700 24px/1.1 var(--cond); }
+.det-lists { grid-column: 1 / -1; display: grid; grid-template-columns: 1.5fr 1fr; gap: 22px; }
+.mini-feed, .trips { list-style: none; margin: 0; padding: 0; }
+.trips li { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.trips a { color: var(--nh-green); font-weight: 600; }
+
+/* ---------- alert feed ---------- */
+.feed-list, .mini-feed { list-style: none; margin: 0; padding: 0 12px 12px; overflow-y: auto; }
+.mini-feed { padding: 0; max-height: 220px; }
+.ev { display: grid; grid-template-columns: 46px 1fr; gap: 2px 10px; padding: 9px 4px; border-bottom: 1px solid var(--line); }
+.ev time { color: var(--muted); font-size: 13px; padding-top: 2px; font-variant-numeric: tabular-nums; }
+.ev .what { font-weight: 600; color: var(--kind, var(--ink)); }
+.ev .where { grid-column: 2; display: flex; gap: 8px; align-items: center; font-size: 13.5px; color: var(--ink-2); flex-wrap: wrap; }
+.ev .where a { color: var(--nh-green); }
+.ev.new { animation: flash 1.6s ease-out; }
+@keyframes flash { from { background: #fbe3e2; } to { background: transparent; } }
+@media (prefers-reduced-motion: reduce) { .ev.new { animation: none; } }
+.check { font-size: 13.5px; color: var(--ink-2); display: flex; gap: 6px; align-items: center; }
+
+/* ---------- small screens (fleet owner on a phone) ---------- */
+@media (max-width: 1100px) {
+  .grid { grid-template-columns: 340px 1fr; }
+  .feed { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--line); max-height: 360px; }
+}
+@media (max-width: 720px) {
+  body { display: block; }
+  .top { gap: 14px; padding: 12px 16px; }
+  .totals { gap: 18px; }
+  .totals dd { font-size: 24px; }
+  .top-right { margin-left: 0; width: 100%; }
+  .danger { padding: 12px 16px; font-size: 18px; }
+  .grid { display: block; }
+  .col-head { padding: 14px 16px 8px; }
+  .veh-list { padding: 0 16px 8px; overflow: visible; }
+  .vehicles { border-right: 0; }
+  #map { height: 340px; flex: none; }
+  .detail { position: static; margin: 12px 16px; max-height: none; box-shadow: none; }
+  .det-body, .det-lists { grid-template-columns: 1fr; }
+  .det-chart, .det-stats { grid-column: 1; }
+  .feed { max-height: none; }
+  .feed-list { padding: 0 16px 16px; overflow: visible; }
+}

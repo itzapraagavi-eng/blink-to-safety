@@ -1,0 +1,7 @@
+mediapipe>=0.10.14
+opencv-contrib-python>=4.8   # OpenCV (the same package MediaPipe uses)
+numpy>=1.24
+pygame-ce>=2.5      # sound (same as pygame, also works on Python 3.13 and 3.14)
+matplotlib>=3.7
+pyttsx3>=2.90
+pyserial>=3.5

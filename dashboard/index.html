@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fleet Monitor - Blink to Safety</title>
+<link rel="stylesheet" href="leaflet/leaflet.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="gate" class="gate" hidden>
+  <form id="gate-form" class="gate-card">
+    <h1>Blink to Safety fleet monitor</h1>
+    <p>Enter the fleet key. It is printed when you start <code>fleet_server.py</code>.</p>
+    <label for="key-input">Fleet key</label>
+    <input id="key-input" type="password" autocomplete="current-password" required>
+    <p id="gate-error" class="gate-error" role="alert"></p>
+    <button type="submit">Open dashboard</button>
+  </form>
+</div>
+
+<header class="top">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <div>
+      <h1>Fleet monitor</h1>
+      <p class="sub">Blink to Safety driver fatigue system</p>
+    </div>
+  </div>
+  <dl class="totals" aria-live="polite">
+    <div><dt>On the road</dt><dd id="t-online">0</dd></div>
+    <div class="t-danger"><dt>Falling asleep now</dt><dd id="t-asleep">0</dd></div>
+    <div><dt>Drowsy alarms today</dt><dd id="t-alarms">0</dd></div>
+    <div><dt>Eyes off the road today</dt><dd id="t-distract">0</dd></div>
+  </dl>
+  <div class="top-right">
+    <span id="conn" class="conn">Connecting...</span>
+    <button id="sound-btn" class="ghost" aria-pressed="true">Sound on</button>
+    <button id="logout-btn" class="ghost">Change key</button>
+  </div>
+</header>
+
+<div id="danger" class="danger" hidden role="alert" aria-live="assertive">
+  <p id="danger-text"></p>
+  <div class="danger-actions">
+    <button id="danger-show">Show on map</button>
+    <a id="danger-maps" target="_blank" rel="noopener">Open in Google Maps</a>
+  </div>
+</div>
+
+<main class="grid">
+  <section class="col vehicles" aria-labelledby="veh-h">
+    <div class="col-head">
+      <h2 id="veh-h">Vehicles</h2>
+      <span id="veh-count" class="muted"></span>
+    </div>
+    <ol id="veh-list" class="veh-list"></ol>
+    <p id="veh-empty" class="empty" hidden>No vehicles yet. Start the app in a vehicle with
+      <code>python main.py --fleet <span class="srv"></span> --key YOURKEY</code></p>
+  </section>
+
+  <section class="col mapcol" aria-label="Map">
+    <div id="map"></div>
+    <p id="map-note" class="map-note" hidden>Map background needs internet. Vehicle positions are still shown.</p>
+    <section id="detail" class="detail" hidden aria-labelledby="det-name">
+      <div class="det-head">
+        <span id="det-plate" class="plate"></span>
+        <div class="det-who">
+          <h2 id="det-name"></h2>
+          <p id="det-status" class="det-status"></p>
+        </div>
+        <button id="det-close" class="ghost" aria-label="Close vehicle details">Close</button>
+      </div>
+      <div class="det-body">
+        <div class="det-chart">
+          <h3>Fatigue score, last 60 minutes</h3>
+          <div id="chart" class="chart"></div>
+        </div>
+        <dl id="det-stats" class="det-stats"></dl>
+        <div class="det-lists">
+          <div>
+            <h3>Recent alerts</h3>
+            <ol id="det-events" class="mini-feed"></ol>
+          </div>
+          <div>
+            <h3>Trip reports</h3>
+            <ol id="det-trips" class="trips"></ol>
+          </div>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <section class="col feed" aria-labelledby="feed-h">
+    <div class="col-head">
+      <h2 id="feed-h">Live alerts</h2>
+      <label class="check"><input id="show-all" type="checkbox"> Yawns and nods</label>
+    </div>
+    <ol id="feed" class="feed-list" aria-live="polite"></ol>
+    <p id="feed-empty" class="empty">No alerts yet today.</p>
+  </section>
+</main>
+
+<script src="leaflet/leaflet.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+# Python cache
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Personal test data (your own sessions and evaluation runs)
+logs/
+results/
+
+# Face model is downloaded automatically on first run (3.6 MB)
+models/*.task
+
+# Trained eye model and collected eye images (large / personal)
+models/*.onnx
+models/*.pt
+data/
+
+# Editor / OS files
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

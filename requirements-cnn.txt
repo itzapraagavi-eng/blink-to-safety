@@ -1,0 +1,4 @@
+# Only needed to TRAIN the CNN eye model (train_cnn.py).
+# Running the trained model in main.py needs nothing extra.
+torch>=2.0
+onnx>=1.14

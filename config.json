@@ -1,0 +1,83 @@
+{
+  "_comment": "Blink to Safety settings. See README section 6 for what each value means. null = automatic.",
+  "detection": {
+    "method": "ear",
+    "closed_seconds": 1.5,
+    "ear_threshold": null,
+    "cnn_model": "models/eye_cnn.onnx",
+    "low_light_threshold": 70
+  },
+  "yawn": {
+    "mar_threshold": 0.5,
+    "min_seconds": 1.0,
+    "eye_grace_seconds": 2.0
+  },
+  "head": {
+    "down_degrees": 20,
+    "drop_seconds": 2.0,
+    "min_nod_seconds": 0.3,
+    "away_degrees": 30,
+    "distract_seconds": 2.0,
+    "face_lost_seconds": 3.0,
+    "ear_unreliable_yaw": 45
+  },
+  "fatigue": {
+    "tired_level": 35,
+    "very_tired_level": 65,
+    "window_seconds": 60
+  },
+  "alerts": {
+    "voice": true,
+    "language": "en",
+    "voice_rate": 165,
+    "warning_cooldown_seconds": 45
+  },
+  "drive": {
+    "break_reminder_minutes": 120,
+    "reminder_repeat_minutes": 30,
+    "break_reset_minutes": 10,
+    "risk_hours": [
+      [
+        0,
+        6
+      ]
+    ],
+    "risk_closed_seconds_factor": 0.8,
+    "risk_score_bonus": 10
+  },
+  "driver": {
+    "name": "Driver",
+    "vehicle": "TN01AB1234"
+  },
+  "gps": {
+    "source": "none",
+    "port": "auto",
+    "baud": 9600,
+    "fixed_lat": 13.0827,
+    "fixed_lon": 80.2707,
+    "sim_route": "chennai_vellore"
+  },
+  "fleet": {
+    "enabled": false,
+    "server": "http://localhost:8000",
+    "key": "change-me",
+    "update_seconds": 2,
+    "upload_trip_report": true
+  },
+  "emergency": {
+    "enabled": false,
+    "telegram_bot_token": "",
+    "telegram_chat_id": "",
+    "alarms_before_alert": 3,
+    "window_minutes": 10,
+    "send_photo": true,
+    "send_location": true
+  },
+  "raspberry_pi": {
+    "enabled": false,
+    "buzzer_pin": 17,
+    "led_pin": 27,
+    "alcohol_sensor_pin": 22,
+    "alcohol_active_low": true
+  }
+}
