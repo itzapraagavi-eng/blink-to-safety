@@ -1,6 +1,9 @@
 # Blink to Safety
 ### Preventing Road Accidents Using AI-Based Fatigue Detection
 
+**▶ Live demo (runs in your browser, nothing to install):** https://itzapraagavi-eng.github.io/blink-to-safety/  
+Allow the camera, keep your eyes open for 3 seconds, then try closing your eyes, yawning or looking away. Video is processed on your device and never uploaded. The demo code is in [`docs/`](docs/).
+
 A real-time, multi-factor driver fatigue monitoring system. A normal webcam
 watches the driver's **eyes, mouth and head**, calculates a live **fatigue score**,
 and warns the driver in two levels: a gentle voice warning when they look tired,

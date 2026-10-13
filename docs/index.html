@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Blink to Safety – Live Demo</title>
+  <meta name="description" content="Try the Blink to Safety driver drowsiness detector in your browser. Eye closure, yawns, head drops and distraction are detected live from your webcam; video never leaves your device.">
+  <meta name="theme-color" content="#0e6b4a">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230e6b4a'/%3E%3Cpath d='M10 33c7-10 14-14 22-14s15 4 22 14' fill='none' stroke='%23fff' stroke-width='5' stroke-linecap='round'/%3E%3Cpath d='M14 38c6 5 12 7 18 7s12-2 18-7' fill='none' stroke='%23f7c600' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="plate">BTS</span>
+      <div>
+        <h1>Blink to Safety</h1>
+        <p class="sub">AI driver fatigue detection · live browser demo</p>
+      </div>
+    </div>
+    <a class="repo" href="https://github.com/itzapraagavi-eng/blink-to-safety" target="_blank" rel="noopener">View code on GitHub</a>
+  </header>
+
+  <main class="layout">
+    <!-- ================= camera ================= -->
+    <section class="stage-wrap" aria-label="Camera">
+      <div class="stage" id="stage">
+        <video id="video" playsinline muted></video>
+        <canvas id="overlay"></canvas>
+
+        <div class="banner" id="banner" data-state="idle">
+          <span class="banner-label" id="bannerLabel">Camera off</span>
+          <span class="banner-detail" id="bannerDetail"></span>
+        </div>
+
+        <div class="calib" id="calib" hidden>
+          <p>Look at the screen normally, eyes open</p>
+          <div class="calib-bar"><div id="calibFill"></div></div>
+        </div>
+
+        <div class="intro" id="intro">
+          <h2>Try it on yourself</h2>
+          <ol>
+            <li>Sit facing the camera in good light.</li>
+            <li>Keep your eyes open for 3 seconds while it learns your face.</li>
+            <li>Then close your eyes, yawn, look down at your phone or turn your head away.</li>
+          </ol>
+          <button id="startBtn" class="primary">Start camera</button>
+          <p class="privacy">Runs entirely in your browser. Your video is never uploaded or saved.</p>
+          <p class="error" id="error" role="alert" hidden></p>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="stopBtn" class="ghost" disabled>Stop</button>
+        <button id="recalBtn" class="ghost" disabled>Recalibrate</button>
+        <div class="seg" role="group" aria-label="Voice language">
+          <button data-lang="en" class="on" aria-pressed="true">English</button>
+          <button data-lang="ta" aria-pressed="false">தமிழ்</button>
+          <button data-lang="hi" aria-pressed="false">हिन्दी</button>
+        </div>
+        <label class="toggle"><input type="checkbox" id="soundChk" checked> Sound</label>
+        <span class="fps" id="fps"></span>
+      </div>
+    </section>
+
+    <!-- ================= instruments ================= -->
+    <section class="panel" aria-label="Driver state">
+      <div class="card gauge-card">
+        <div class="card-head">
+          <h2>Fatigue score</h2>
+          <span class="level" id="levelTag" data-level="0">ALERT</span>
+        </div>
+        <div class="gauge">
+          <div class="gauge-track">
+            <span class="zone z1"></span><span class="zone z2"></span><span class="zone z3"></span>
+            <div class="gauge-needle" id="needle"></div>
+          </div>
+          <div class="gauge-scale"><span>0</span><span style="left:35%">35 tired</span><span style="left:65%">65 very tired</span><span style="left:100%">100</span></div>
+        </div>
+        <div class="big"><span id="fatigueVal">0</span><small>/100</small></div>
+      </div>
+
+      <div class="metrics">
+        <div class="metric"><span class="k">Eye opening (EAR)</span><span class="v" id="mEar">–</span><span class="s" id="mThr">limit –</span></div>
+        <div class="metric"><span class="k">PERCLOS</span><span class="v" id="mPerclos">–</span><span class="s">eyes closed, last 60 s</span></div>
+        <div class="metric"><span class="k">Blinks / min</span><span class="v" id="mBlinks">–</span><span class="s" id="mBlinkTotal">0 total</span></div>
+        <div class="metric"><span class="k">Head</span><span class="v" id="mHead">–</span><span class="s">down° / turn°</span></div>
+        <div class="metric"><span class="k">Yawns · Nods</span><span class="v" id="mYawn">0 · 0</span><span class="s" id="mMar">mouth –</span></div>
+        <div class="metric"><span class="k">Alarms · Distractions</span><span class="v" id="mAlarm">0 · 0</span><span class="s">this session</span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>Eye opening, last 20 s</h2><span class="legend"><i class="l-ear"></i>EAR <i class="l-thr"></i>limit</span></div>
+        <canvas id="chart" height="110"></canvas>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>Events</h2></div>
+        <ol class="events" id="events"><li class="muted">Nothing yet.</li></ol>
+      </div>
+    </section>
+  </main>
+
+  <section class="how">
+    <h2>How it works</h2>
+    <div class="how-grid">
+      <p><b>Face landmarks.</b> MediaPipe Face Landmarker finds 478 points on your face in every frame, on your device.</p>
+      <p><b>Eyes.</b> The eye aspect ratio (EAR) falls when the eyes close. The limit is 65% of your own open-eye EAR and keeps adapting. Eyes closed for 1.5 s sound the alarm.</p>
+      <p><b>Mouth and head.</b> A wide-open mouth for 1 s is a yawn. Head down with eyes closed is dozing; head down with eyes open is looking at a phone; head turned away for 2 s is a distraction.</p>
+      <p><b>Fatigue score.</b> PERCLOS, slow blinks, yawns, nods and alarms add up to a 0–100 score with spoken warnings in English, Tamil or Hindi.</p>
+    </div>
+    <p class="foot">Blink to Safety · Raagavi A.P., RMK College of Engineering and Technology. This demo is for illustration only and is not a certified safety device. The full app (GPS alerts, fleet dashboard, Raspberry Pi) is in the <a href="https://github.com/itzapraagavi-eng/blink-to-safety" target="_blank" rel="noopener">GitHub repository</a>.</p>
+  </section>
+
+  <div class="flash" id="flash" aria-hidden="true"></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
