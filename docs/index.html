@@ -1,12 +1,19 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="highway">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Blink to Safety – Live Demo</title>
   <meta name="description" content="Try the Blink to Safety driver drowsiness detector in your browser. Eye closure, yawns, head drops and distraction are detected live from your webcam; video never leaves your device.">
-  <meta name="theme-color" content="#0e6b4a">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230e6b4a'/%3E%3Cpath d='M10 33c7-10 14-14 22-14s15 4 22 14' fill='none' stroke='%23fff' stroke-width='5' stroke-linecap='round'/%3E%3Cpath d='M14 38c6 5 12 7 18 7s12-2 18-7' fill='none' stroke='%23f7c600' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E">
+  <script>
+    // apply the saved colour theme before the page paints
+    try {
+      var q = new URLSearchParams(location.search).get("theme");
+      var t = q || localStorage.getItem("bts-theme");
+      if (t) document.documentElement.dataset.theme = t;
+    } catch (e) {}
+  </script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -15,15 +22,24 @@
       <span class="plate">BTS</span>
       <div>
         <h1>Blink to Safety</h1>
-        <p class="sub">AI driver fatigue detection · live browser demo</p>
+        <p class="sub">AI driver fatigue detection · live demo</p>
       </div>
     </div>
-    <a class="repo" href="https://github.com/itzapraagavi-eng/blink-to-safety" target="_blank" rel="noopener">View code on GitHub</a>
+    <div class="top-right">
+      <div class="themes" role="radiogroup" aria-label="Colour theme">
+        <button role="radio" data-theme="highway" title="Highway"   aria-label="Highway theme"></button>
+        <button role="radio" data-theme="night"   title="Night Drive" aria-label="Night Drive theme"></button>
+        <button role="radio" data-theme="carbon"  title="Carbon"    aria-label="Carbon theme"></button>
+        <button role="radio" data-theme="ocean"   title="Ocean"     aria-label="Ocean theme"></button>
+        <button role="radio" data-theme="sunset"  title="Sunset"    aria-label="Sunset theme"></button>
+      </div>
+      <a class="repo" href="https://github.com/itzapraagavi-eng/blink-to-safety" target="_blank" rel="noopener">GitHub</a>
+    </div>
   </header>
 
   <main class="layout">
-    <!-- ================= camera ================= -->
-    <section class="stage-wrap" aria-label="Camera">
+    <!-- ================= camera column ================= -->
+    <section class="stage-col" aria-label="Camera">
       <div class="stage" id="stage">
         <video id="video" playsinline muted></video>
         <canvas id="overlay"></canvas>
@@ -32,10 +48,18 @@
           <span class="banner-label" id="bannerLabel">Camera off</span>
           <span class="banner-detail" id="bannerDetail"></span>
         </div>
+        <div class="chip" id="lightChip" hidden>Too dark – turn on a light</div>
 
         <div class="calib" id="calib" hidden>
           <p>Look at the screen normally, eyes open</p>
           <div class="calib-bar"><div id="calibFill"></div></div>
+        </div>
+
+        <!-- big heads-up display for driving mode -->
+        <div class="hud" id="hud">
+          <div class="hud-state" id="hudState">Awake</div>
+          <div class="hud-row"><span id="hudScore">0</span><small>fatigue</small><span id="hudTime">0:00</span><small>drive time</small></div>
+          <button class="hud-exit" id="hudExit">Exit driving mode</button>
         </div>
 
         <div class="intro" id="intro">
@@ -52,33 +76,67 @@
       </div>
 
       <div class="controls">
-        <button id="stopBtn" class="ghost" disabled>Stop</button>
-        <button id="recalBtn" class="ghost" disabled>Recalibrate</button>
-        <div class="seg" role="group" aria-label="Voice language">
-          <button data-lang="en" class="on" aria-pressed="true">English</button>
-          <button data-lang="ta" aria-pressed="false">தமிழ்</button>
-          <button data-lang="hi" aria-pressed="false">हिन्दी</button>
-        </div>
-        <label class="toggle"><input type="checkbox" id="soundChk" checked> Sound</label>
+        <button id="stopBtn" class="btn" disabled>End trip</button>
+        <button id="recalBtn" class="btn" disabled>Recalibrate</button>
+        <button id="driveBtn" class="btn" disabled>Driving mode</button>
+        <button id="reportBtn" class="btn accent" disabled>Trip report (PDF)</button>
+        <button id="setBtn" class="btn" aria-expanded="false" aria-controls="settings">Settings</button>
         <span class="fps" id="fps"></span>
+      </div>
+
+      <div class="settings card" id="settings" hidden>
+        <div class="set-row">
+          <span class="set-label">Voice</span>
+          <div class="seg" id="langSeg" role="group" aria-label="Voice language">
+            <button data-v="en" class="on" aria-pressed="true">English</button>
+            <button data-v="ta" aria-pressed="false">தமிழ்</button>
+            <button data-v="hi" aria-pressed="false">हिन्दी</button>
+          </div>
+          <label class="toggle"><input type="checkbox" id="soundChk" checked> Sound on</label>
+        </div>
+        <div class="set-row">
+          <span class="set-label">Alarm after eyes closed for</span>
+          <div class="seg" id="sensSeg" role="group" aria-label="Alarm sensitivity">
+            <button data-v="1.0" aria-pressed="false">1.0 s</button>
+            <button data-v="1.5" class="on" aria-pressed="true">1.5 s</button>
+            <button data-v="2.0" aria-pressed="false">2.0 s</button>
+          </div>
+        </div>
+        <div class="set-row">
+          <label class="set-label" for="sosNum">Emergency contact (WhatsApp)</label>
+          <input id="sosNum" type="tel" inputmode="tel" placeholder="e.g. 919876543210" autocomplete="off">
+        </div>
+        <p class="set-note">The number stays in this browser only. After repeated alarms you get a button to share your location with this person.</p>
       </div>
     </section>
 
-    <!-- ================= instruments ================= -->
+    <!-- ================= instrument column ================= -->
     <section class="panel" aria-label="Driver state">
-      <div class="card gauge-card">
-        <div class="card-head">
-          <h2>Fatigue score</h2>
+      <div class="card status-card">
+        <div class="ring-wrap">
+          <svg viewBox="0 0 120 120" class="ring" aria-hidden="true">
+            <circle cx="60" cy="60" r="50" class="ring-track"/>
+            <circle cx="60" cy="60" r="50" class="ring-fill" id="ringFill"/>
+          </svg>
+          <div class="ring-text"><span id="fatigueVal">0</span><small>fatigue</small></div>
+        </div>
+        <div class="status-info">
           <span class="level" id="levelTag" data-level="0">ALERT</span>
+          <p class="status-line" id="statusLine">Start the camera to begin.</p>
+          <dl class="mini">
+            <div><dt>Drive time</dt><dd id="mTime">0:00</dd></div>
+            <div><dt>Alarms</dt><dd id="mAlarm">0</dd></div>
+            <div><dt>Distractions</dt><dd id="mDist">0</dd></div>
+          </dl>
         </div>
-        <div class="gauge">
-          <div class="gauge-track">
-            <span class="zone z1"></span><span class="zone z2"></span><span class="zone z3"></span>
-            <div class="gauge-needle" id="needle"></div>
-          </div>
-          <div class="gauge-scale"><span>0</span><span style="left:35%">35 tired</span><span style="left:65%">65 very tired</span><span style="left:100%">100</span></div>
+      </div>
+
+      <div class="card sos" id="sosCard" hidden>
+        <b>Repeated drowsiness alarms.</b> Please stop and rest.
+        <div class="sos-actions">
+          <button class="btn danger" id="sosBtn">Share my location with a contact</button>
+          <button class="btn" id="sosHide">Dismiss</button>
         </div>
-        <div class="big"><span id="fatigueVal">0</span><small>/100</small></div>
       </div>
 
       <div class="metrics">
@@ -86,13 +144,19 @@
         <div class="metric"><span class="k">PERCLOS</span><span class="v" id="mPerclos">–</span><span class="s">eyes closed, last 60 s</span></div>
         <div class="metric"><span class="k">Blinks / min</span><span class="v" id="mBlinks">–</span><span class="s" id="mBlinkTotal">0 total</span></div>
         <div class="metric"><span class="k">Head</span><span class="v" id="mHead">–</span><span class="s">down° / turn°</span></div>
-        <div class="metric"><span class="k">Yawns · Nods</span><span class="v" id="mYawn">0 · 0</span><span class="s" id="mMar">mouth –</span></div>
-        <div class="metric"><span class="k">Alarms · Distractions</span><span class="v" id="mAlarm">0 · 0</span><span class="s">this session</span></div>
+        <div class="metric"><span class="k">Yawns</span><span class="v" id="mYawn">0</span><span class="s" id="mMar">mouth –</span></div>
+        <div class="metric"><span class="k">Nods · slow blinks</span><span class="v" id="mNod">0 · 0</span><span class="s">signs of fatigue</span></div>
       </div>
 
       <div class="card">
-        <div class="card-head"><h2>Eye opening, last 20 s</h2><span class="legend"><i class="l-ear"></i>EAR <i class="l-thr"></i>limit</span></div>
-        <canvas id="chart" height="110"></canvas>
+        <div class="card-head">
+          <div class="tabs" role="tablist">
+            <button role="tab" class="on" aria-selected="true" data-chart="ear">Eye opening</button>
+            <button role="tab" aria-selected="false" data-chart="fatigue">Fatigue over time</button>
+          </div>
+          <span class="legend" id="legend"></span>
+        </div>
+        <canvas id="chart" height="120"></canvas>
       </div>
 
       <div class="card">
@@ -108,12 +172,27 @@
       <p><b>Face landmarks.</b> MediaPipe Face Landmarker finds 478 points on your face in every frame, on your device.</p>
       <p><b>Eyes.</b> The eye aspect ratio (EAR) falls when the eyes close. The limit is 65% of your own open-eye EAR and keeps adapting. Eyes closed for 1.5 s sound the alarm.</p>
       <p><b>Mouth and head.</b> A wide-open mouth for 1 s is a yawn. Head down with eyes closed is dozing; head down with eyes open is looking at a phone; head turned away for 2 s is a distraction.</p>
-      <p><b>Fatigue score.</b> PERCLOS, slow blinks, yawns, nods and alarms add up to a 0–100 score with spoken warnings in English, Tamil or Hindi.</p>
+      <p><b>Fatigue score.</b> PERCLOS, slow blinks, yawns, nods, alarms, night hours and drive time add up to a 0–100 score with spoken warnings in English, Tamil or Hindi.</p>
     </div>
-    <p class="foot">Blink to Safety · Raagavi A.P., RMK College of Engineering and Technology. This demo is for illustration only and is not a certified safety device. The full app (GPS alerts, fleet dashboard, Raspberry Pi) is in the <a href="https://github.com/itzapraagavi-eng/blink-to-safety" target="_blank" rel="noopener">GitHub repository</a>.</p>
+    <p class="foot">Blink to Safety · Raagavi A.P., RMK College of Engineering and Technology. This demo is for illustration only and is not a certified safety device. The full app (GPS Telegram alerts, fleet dashboard, Raspberry Pi) is in the <a href="https://github.com/itzapraagavi-eng/blink-to-safety" target="_blank" rel="noopener">GitHub repository</a>.</p>
   </section>
 
+  <!-- ================= trip report ================= -->
+  <dialog id="reportDlg" aria-labelledby="repTitle">
+    <form method="dialog" class="rep">
+      <h2 id="repTitle">Trip report</h2>
+      <p class="muted" id="repWhen"></p>
+      <dl class="rep-grid" id="repGrid"></dl>
+      <canvas id="repChart" width="900" height="260"></canvas>
+      <div class="rep-actions">
+        <button type="button" class="btn accent" id="pdfBtn">Download PDF</button>
+        <button class="btn" value="close">Close</button>
+      </div>
+    </form>
+  </dialog>
+
   <div class="flash" id="flash" aria-hidden="true"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
   <script type="module" src="app.js"></script>
 </body>
 </html>
