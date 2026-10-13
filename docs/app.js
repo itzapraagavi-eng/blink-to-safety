@@ -3,6 +3,7 @@
 // Python app's detector.py and monitor.py).
 import { FaceLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21/vision_bundle.mjs";
 import { CFG, DriverMonitor, LEVEL_NAMES, MOUTH_OUTLINE, driveContext, measureFace } from "./logic.js";
+import { initExtras } from "./extras.js";
 
 const WASM = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21/wasm";
 const MODEL = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
@@ -75,6 +76,7 @@ async function start() {
   trip = { startDate: new Date(), t0: now, last: now, series: [], perclos: [], events: [], lastSample: -1,
     nightWarned: false, nextBreak: BREAK_AFTER, alarmTimes: [], sosDismissedAt: -1 };
   window.__bts.trip = trip;
+  extras.onTripStart(trip);
   history.length = 0; clearEvents();
   running = true; window.__bts.ready = true;
   requestWakeLock();
@@ -97,6 +99,7 @@ function endTrip() {
   $("calib").hidden = true; $("lightChip").hidden = true;
   setBanner("idle", "Trip ended", "");
   $("fps").textContent = "";
+  if (trip) extras.onTripEnd(trip);
   if (trip && trip.series.length > 3) openReport();
 }
 
@@ -110,12 +113,15 @@ function loop() {
     const w = video.videoWidth, h = video.videoHeight;
     const face = res.faceLandmarks && res.faceLandmarks.length ? measureFace(res.faceLandmarks[0], w, h) : null;
     const ctx = driveContext(cfg, new Date(), now - trip.t0);
+    ctx.hrBonus = extras.hrBonus();
     const st = monitor.update(face, now, ctx);
     lastState = st;
     window.__bts.state = { status: st.status, ear: st.ear, threshold: st.threshold, fatigue: st.fatigue,
       drowsyReason: st.drowsyReason, distractReason: st.distractReason, pitch: st.head.pitchDelta, yaw: st.head.yawDelta };
     record(st, now, ctx);
     draw(face, st, w, h);
+    extras.drawRoi(octx);
+    extras.onFrame(face, st, now, trip, window.__bts.fps);
     render(st, now);
     handleEvents(st, now, ctx);
     checkLight(now);
@@ -415,6 +421,14 @@ function say(id, urgent) {
   }
 }
 
+function sayText(text, fallbackId) {
+  if (lang !== "en" || !window.SpeechSynthesisUtterance) { say(fallbackId, false); return; }
+  if (!soundOn || synth.speaking) return;
+  const u = new SpeechSynthesisUtterance(text); u.rate = 1.05;
+  const v = synth.getVoices().find((x) => /en[-_]IN/i.test(x.lang)); if (v) u.voice = v;
+  synth.speak(u);
+}
+
 let wakeLock = null;
 async function requestWakeLock() {
   try { if ("wakeLock" in navigator) wakeLock = await navigator.wakeLock.request("screen"); } catch { /* not supported */ }
@@ -476,6 +490,7 @@ function openReport() {
   if (!trip) return;
   $("repWhen").textContent = "Started " + trip.startDate.toLocaleString("en-IN") + (running ? " · trip still running" : "");
   $("repGrid").innerHTML = summary().map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("");
+  $("repExtra").innerHTML = extras.reportLines(trip).map((l) => `<p>${l.replace(/[<&]/g, (c) => (c === "<" ? "&lt;" : "&amp;"))}</p>`).join("");
   renderReportChart();
   const dlg = $("reportDlg");
   if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
@@ -516,7 +531,13 @@ function downloadPdf() {
     : lvl === 1 ? "Signs of tiredness were detected. A short break is advised."
     : "No significant fatigue was detected during this trip.";
   doc.setFont("helvetica", "italic"); doc.setFontSize(10.5); doc.setTextColor(31, 41, 55);
-  doc.text(doc.splitTextToSize(verdict, W - 2 * M), M, y); y += 10;
+  doc.text(doc.splitTextToSize(verdict, W - 2 * M), M, y); y += 8;
+  doc.setFont("helvetica", "normal"); doc.setFontSize(9.5); doc.setTextColor(60, 70, 85);
+  for (const line of extras.reportLines(trip)) {
+    const wrapped = doc.splitTextToSize(line.replace(/[–→]/g, "-").replace(/≥/g, ">="), W - 2 * M);
+    doc.text(wrapped, M, y); y += 5 * wrapped.length;
+  }
+  y += 4;
 
   // chart
   renderReportChart();
@@ -559,6 +580,10 @@ function applyTheme(t) {
 }
 document.querySelectorAll(".themes button").forEach((b) => b.addEventListener("click", () => applyTheme(b.dataset.theme)));
 applyTheme(document.documentElement.dataset.theme || "highway");
+
+// ------------------------------------------------------------ prevention features (extras.js)
+const extras = initExtras({ $, store, video, unlockAudio, chime, say, sayText, addEvent, start,
+  blinksPerMinute: (now) => (monitor ? monitor.eyes.blinksPerMinute(now) : 0) });
 
 // ------------------------------------------------------------ controls
 function segment(id, onPick) {

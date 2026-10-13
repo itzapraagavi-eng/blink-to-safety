@@ -250,7 +250,7 @@ export class FatigueScorer {
     while (q.length && now - q[0] > 300) q.shift();
     return q.filter((t) => now - t <= sec).length;
   }
-  update(eyesClosed, now, bonus = 0) {
+  update(eyesClosed, now, bonus = 0, hrBonus = 0) {
     if (eyesClosed != null) this.hist.push([now, eyesClosed]);
     while (this.hist.length && now - this.hist[0][0] > this.window) this.hist.shift();
     const n = this.hist.length;
@@ -263,6 +263,7 @@ export class FatigueScorer {
       slowBlinks: Math.min(20, 5 * this.recent("slow_blink", now, 60)),
       alarms: Math.min(40, 20 * this.recent("drowsy", now, 300)),
       timeRisk: bonus,
+      heartRate: hrBonus,   // camera heart rate well below this driver's start value
     };
     const raw = Math.min(100, Object.values(parts).reduce((a, b) => a + b, 0));
     this.smooth += (raw - this.smooth) * (raw < this.smooth ? 0.08 : 0.25);
@@ -358,7 +359,7 @@ export class DriverMonitor {
     if (drowsy) { st.status = "DROWSY"; st.drowsy = true; }
     else if (distracted) st.status = "DISTRACTED";
 
-    const { fatigue, perclos, parts } = this.scorer.update(face ? st.eyesClosed : null, now, ctx.bonus);
+    const { fatigue, perclos, parts } = this.scorer.update(face ? st.eyesClosed : null, now, ctx.bonus, ctx.hrBonus || 0);
     let lvl = fatigue >= c.veryTired ? 2 : fatigue >= c.tired ? 1 : 0;
     if (lvl < this.level) {
       const limits = { 1: c.tired, 2: c.veryTired };

@@ -69,9 +69,32 @@
             <li>Keep your eyes open for 3 seconds while it learns your face.</li>
             <li>Then close your eyes, yawn, look down at your phone or turn your head away.</li>
           </ol>
-          <button id="startBtn" class="primary">Start camera</button>
+          <div class="intro-actions">
+            <button id="startBtn" class="primary">Start camera</button>
+            <button id="pvtOpen" class="secondary">Fit-to-drive check · 60 s</button>
+          </div>
           <p class="privacy">Runs entirely in your browser. Your video is never uploaded or saved.</p>
           <p class="error" id="error" role="alert" hidden></p>
+        </div>
+
+        <!-- fit-to-drive reaction test -->
+        <div class="pvt" id="pvt" hidden>
+          <div class="pvt-intro" id="pvtIntro">
+            <h2>Fit-to-drive check</h2>
+            <p>A 60-second reaction test based on the Psychomotor Vigilance Task used in sleep research. Tired people react slowly or miss signals.</p>
+            <p><b>Tap the box (or press Space) as soon as the counter appears.</b> Don't tap early.</p>
+            <div class="pvt-btns"><button class="primary" id="pvtBegin">Begin test</button><button class="secondary" id="pvtCancel">Cancel</button></div>
+          </div>
+          <div class="pvt-run" id="pvtRun" hidden>
+            <button class="pvt-box" id="pvtBox" aria-label="Reaction box: tap when the counter appears"><span id="pvtCounter"></span><small id="pvtHint">Wait for the counter…</small></button>
+            <div class="pvt-progress"><div id="pvtFill"></div></div>
+          </div>
+          <div class="pvt-result" id="pvtResult" hidden>
+            <span class="pvt-verdict" id="pvtVerdict" data-v="FIT">FIT</span>
+            <p id="pvtAdvice"></p>
+            <dl class="pvt-stats" id="pvtStats"></dl>
+            <div class="pvt-btns"><button class="primary" id="pvtStart">Start trip</button><button class="secondary" id="pvtAgain">Test again</button><button class="secondary" id="pvtClose">Close</button></div>
+          </div>
         </div>
       </div>
 
@@ -103,6 +126,11 @@
           </div>
         </div>
         <div class="set-row">
+          <label class="set-label" for="driverName">Driver name</label>
+          <input id="driverName" type="text" placeholder="Driver" maxlength="30" autocomplete="off">
+          <span class="set-note" id="profileNote"></span>
+        </div>
+        <div class="set-row">
           <label class="set-label" for="sosNum">Emergency contact (WhatsApp)</label>
           <input id="sosNum" type="tel" inputmode="tel" placeholder="e.g. 919876543210" autocomplete="off">
         </div>
@@ -123,11 +151,13 @@
         <div class="status-info">
           <span class="level" id="levelTag" data-level="0">ALERT</span>
           <p class="status-line" id="statusLine">Start the camera to begin.</p>
+          <p class="forecast" id="forecast" hidden></p>
           <dl class="mini">
             <div><dt>Drive time</dt><dd id="mTime">0:00</dd></div>
             <div><dt>Alarms</dt><dd id="mAlarm">0</dd></div>
             <div><dt>Distractions</dt><dd id="mDist">0</dd></div>
           </dl>
+          <button class="btn rest" id="restBtn" hidden>Find a rest stop nearby</button>
         </div>
       </div>
 
@@ -135,6 +165,7 @@
         <b>Repeated drowsiness alarms.</b> Please stop and rest.
         <div class="sos-actions">
           <button class="btn danger" id="sosBtn">Share my location with a contact</button>
+          <button class="btn" id="sosRest">Find a rest stop</button>
           <button class="btn" id="sosHide">Dismiss</button>
         </div>
       </div>
@@ -146,6 +177,14 @@
         <div class="metric"><span class="k">Head</span><span class="v" id="mHead">–</span><span class="s">down° / turn°</span></div>
         <div class="metric"><span class="k">Yawns</span><span class="v" id="mYawn">0</span><span class="s" id="mMar">mouth –</span></div>
         <div class="metric"><span class="k">Nods · slow blinks</span><span class="v" id="mNod">0 · 0</span><span class="s">signs of fatigue</span></div>
+        <div class="metric"><span class="k">Heart rate (camera)</span><span class="v" id="mHr">–</span><span class="s" id="mHrQ">needs a steady face</span></div>
+        <div class="metric"><span class="k">Blink length</span><span class="v" id="mBlinkDur">–</span><span class="s">average, ms</span></div>
+        <div class="metric"><span class="k">Reaction time</span><span class="v" id="mRt">–</span><span class="s" id="mRtV">fit-to-drive check</span></div>
+      </div>
+
+      <div class="card usual" id="usualCard" hidden>
+        <div class="card-head"><h2>Compared with your usual</h2><span class="muted small" id="usualNote"></span></div>
+        <table class="usual-table"><thead><tr><th>Sign</th><th>Today</th><th>Usual</th><th></th></tr></thead><tbody id="usualBody"></tbody></table>
       </div>
 
       <div class="card">
@@ -172,6 +211,10 @@
       <p><b>Face landmarks.</b> MediaPipe Face Landmarker finds 478 points on your face in every frame, on your device.</p>
       <p><b>Eyes.</b> The eye aspect ratio (EAR) falls when the eyes close. The limit is 65% of your own open-eye EAR and keeps adapting. Eyes closed for 1.5 s sound the alarm.</p>
       <p><b>Mouth and head.</b> A wide-open mouth for 1 s is a yawn. Head down with eyes closed is dozing; head down with eyes open is looking at a phone; head turned away for 2 s is a distraction.</p>
+      <p><b>Before the trip.</b> A 60-second reaction test (based on the Psychomotor Vigilance Task) checks whether you are fit to drive.</p>
+      <p><b>Heart rate from the camera.</b> Tiny colour changes of the forehead skin with each heartbeat give your pulse (rPPG, POS method). A clear drop adds to the fatigue score.</p>
+      <p><b>Your own normal.</b> Each trip is saved to your driver profile on this device, so today is compared with your usual blinks, eye closure, pulse and reaction time.</p>
+      <p><b>Early warning.</b> The trend of the score predicts when you will reach "very tired", so you can plan a stop before it happens.</p>
       <p><b>Fatigue score.</b> PERCLOS, slow blinks, yawns, nods, alarms, night hours and drive time add up to a 0–100 score with spoken warnings in English, Tamil or Hindi.</p>
     </div>
     <p class="foot">Blink to Safety · Raagavi A.P., RMK College of Engineering and Technology. This demo is for illustration only and is not a certified safety device. The full app (GPS Telegram alerts, fleet dashboard, Raspberry Pi) is in the <a href="https://github.com/itzapraagavi-eng/blink-to-safety" target="_blank" rel="noopener">GitHub repository</a>.</p>
@@ -183,6 +226,7 @@
       <h2 id="repTitle">Trip report</h2>
       <p class="muted" id="repWhen"></p>
       <dl class="rep-grid" id="repGrid"></dl>
+      <div class="rep-extra" id="repExtra"></div>
       <canvas id="repChart" width="900" height="260"></canvas>
       <div class="rep-actions">
         <button type="button" class="btn accent" id="pdfBtn">Download PDF</button>
